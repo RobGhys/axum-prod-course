@@ -1,0 +1,5 @@
+[env]
+
+RUST_LOG="rust_prod_course=debug"
+
+SERVICE_WEB_FOLDER="web-folder/"
