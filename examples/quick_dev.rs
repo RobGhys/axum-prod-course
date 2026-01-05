@@ -16,7 +16,26 @@ async fn main() -> Result<()> {
         }),
     );
 
+    // This hello will fail -> NO_AUTH
+    hc.do_get("/hello").await?.print().await?;
+
+    // Execute login request
     req_login.await?.print().await?;
+
+    // This hello will work because we did the login
+    hc.do_get("/hello").await?.print().await?;
+
+    // logoff -> the next hello won't work
+    let req_logoff = hc.do_post(
+        "/api/logoff",
+        json!({
+            "logoff": true
+        })
+    );
+    // execute logoff request
+    req_logoff.await?.print().await?;
+
+    hc.do_get("/hello").await?.print().await?;
 
     Ok(())
 }

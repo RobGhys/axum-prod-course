@@ -1,22 +1,24 @@
+use serde::Serialize;
 use crate::model;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum Error {
-    // -- Config
-    ConfigMissingEnv(&'static str),
-    ConfigWrongFormat(&'static str),
-    
-    // -- Modules
-    Model(model::Error),
-}
+    // -- Key
+    KeyFailHmac,
 
-// region:  ---Froms
-impl From<model::Error> for Error {
-    fn from(val: model::Error) -> Self { Self::Model(val)}
+    // -- Password
+    PasswordNotMatching,
+
+    // -- Token
+    TokenInvalidFormat,
+    TokenCannotDecodeIdent,
+    TokenCannotDecodeExp,
+    TokenSignatureNotMatching,
+    TokenExpNotIso,
+    TokenExpired,
 }
-// endregion:   ---Froms
 
 // region:  ------ Error Boilerplate
 impl core::fmt::Display for Error {
@@ -26,5 +28,5 @@ impl core::fmt::Display for Error {
     ) -> core::result::Result<(), core::fmt::Error> { write!(fmt, "{self:?}")}
 }
 
-impl std::error::Error for Error{}
+impl std::error::Error for Error {}
 // endregion: --- Error Boilerplate

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use axum::extract::Request;
 use crate::ctx::Ctx;
 use crate::log::log_request;
@@ -17,15 +18,15 @@ pub async fn mw_response_map(
     let uri = req.uri().clone();
     let ctx = req.extensions().get::<Ctx>().cloned();
 
-    println!("->> {:<12} - mw_reponse_map", "RES_MAPPER");
+    println!("->> {:<12} - mw_response_map", "RES_MAPPER");
     let uuid = Uuid::new_v4();
 
     let res = next.run(req).await;
     // -- Get the eventual response error.
-    let web_error = res.extensions().get::<web::Error>();
+    let web_error = res.extensions().get::<Arc<web::Error>>();
     let client_status_error = web_error.map(|se| se.client_status_and_error());
 
-    // -- If client error, build the new reponse.
+    // -- If client error, build the new response.
     let error_response =
         client_status_error
             .as_ref()
@@ -46,7 +47,9 @@ pub async fn mw_response_map(
     // -- Build and log the server log line.
     let client_error = client_status_error.unzip().1;
     // TODO: Need to hander if log_request fail (but should not fail request)
-    let _ = log_request(uuid, method, uri, ctx, web_error, client_error).await;
+    let _ = log_request(
+        uuid, method, uri, ctx, web_error.map(|e| e.as_ref()), client_error
+    ).await;
 
     println!("\n");
 

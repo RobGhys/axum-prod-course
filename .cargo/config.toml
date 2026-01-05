@@ -2,4 +2,11 @@
 
 RUST_LOG="rust_prod_course=debug"
 
+## -- Secrets
+SERVICE_DB_URL="postgres://app_user:dev_only_pwd@localhost/app_db"
+SERVICE_PWD_KEY="I1X8veczK9fTDA3bAvOaX6z4WpBPF6OT_1SWAEt-9jYSkbSqfOUGJ_hHL8RjgnUKj33oADpBBr4zXZeQ5Ntunw"
+SERVICE_TOKEN_KEY="r3rSkMYtI8M0gtxub1-zRkozEbF22Nead-jJbhXqRoaSjS71qK3RcURcR6H_Q3wcFEOrJmzviJeV5dRHvMrF7g"
+SERVICE_TOKEN_DURATION_SEC="1800"
+
+## -- ConfigMap
 SERVICE_WEB_FOLDER="web-folder/"

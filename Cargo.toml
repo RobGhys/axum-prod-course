@@ -18,6 +18,12 @@ strum_macros = "0.27.2"
 uuid = { version = "1.18.1", features = ["v4", "fast-rng"] }
 serde_with = "3.15.1"
 sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "uuid", "time"] }
+serial_test = "3.2.0"
+rand = "0.9.2"
+hmac = "0.12.1"
+sha2 = "0.10.9"
+base64 = "0.22.1"
+time = "0.3.44"
 
 [dev-dependencies]
 anyhow = "1.0.98"

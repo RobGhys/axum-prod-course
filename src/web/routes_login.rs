@@ -1,27 +1,56 @@
-use crate::web::{self, Error, Result};
+use crate::web::{self, remove_token_cookie, Error, Result};
 use axum::routing::post;
 use axum::{Json, Router};
+use axum::extract::State;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tower_cookies::{Cookie, Cookies};
+use tracing::debug;
+use crate::crypt::{pwd, EncryptContent};
+use crate::ctx::Ctx;
+use crate::model::ModelManager;
+use crate::model::user::{UserBmc, UserForLogin};
 
-pub fn routes() -> Router {
-    Router::new().route("/api/login", post(api_login_handler))
+pub fn routes(mm: ModelManager) -> Router {
+    Router::new()
+        .route("/api/login", post(api_login_handler))
+        .route("/api/logoff", post(api_logoff_handler))
+        .with_state(mm)
 }
 
+// region:      --- Login
 async fn api_login_handler(
+    State(mm): State<ModelManager>,
     cookies: Cookies,
-    payload: Json<LoginPayload>,
+    Json(payload): Json<LoginPayload>,
 ) -> Result<Json<Value>> {
     println!("->> {:<12} - api_login_handler", "HANDLER");
 
-    // TODO: Implement real db/auth logic.
-    if payload.username != "demo1" || payload.pwd != "welcome" {
-        return Err(Error::LoginFail);
-    }
+    let LoginPayload {
+        username,
+        pwd: pwd_clear
+    } = payload;
+    let root_ctx = Ctx::root_ctx();
+    let user: UserForLogin = UserBmc::first_by_username(&root_ctx, &mm, &username)
+        .await?
+        .ok_or(Error::LoginFailUserNameNotFound)?;
+    let user_id = user.id;
 
-    // FIXME: Implement real auth-token generation/signature.
-    cookies.add(Cookie::new(web::AUTH_TOKEN, "user-1.exp.sign"));
+    let Some(pwd) = user.pwd else {
+        return Err(Error::LoginFailUserHasNoPassword{ user_id });
+    };
+
+    pwd::validate_pw(
+        &EncryptContent {
+            content: pwd_clear.clone(),
+            salt: user.pwd_salt.to_string(),
+        },
+        &pwd
+    )
+        .map_err(|_| Error::LoginFailPasswordNotMatching { user_id })?;
+
+    // Set WebToken in Cookie
+    web::set_token_cookie(&cookies, &user.username, &user.token_salt.to_string())?;
 
     // Create the success body.
     let body = Json(json!({
@@ -38,3 +67,33 @@ struct LoginPayload {
     username: String,
     pwd: String,
 }
+// endregion:      --- Login
+
+
+// region:      -- Logoff
+#[derive(Debug, Deserialize)]
+struct LogoffPayload {
+    logoff: bool,
+}
+
+async fn api_logoff_handler(
+    cookies: Cookies,
+    Json(payload): Json<LogoffPayload>,
+) -> Result<Json<Value>> {
+    debug!("{:<12} - qpi_logoff_handler", "HANDLER");
+    let should_logoff = payload.logoff;
+
+    if should_logoff {
+        remove_token_cookie(&cookies)?;
+    }
+
+    let body = Json(json!({
+        "result": {
+            "logged_off": should_logoff
+        }
+    }));
+
+    Ok(body)
+}
+
+// endregion:      -- Logoff
